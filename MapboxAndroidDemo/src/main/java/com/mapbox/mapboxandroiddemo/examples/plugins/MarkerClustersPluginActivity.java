@@ -1,5 +1,5 @@
 package com.mapbox.mapboxandroiddemo.examples.plugins;
-
+// #-code-snippet: marker-clusters-plugin-activity full-java
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.widget.Toast;
@@ -190,3 +190,4 @@ public class MarkerClustersPluginActivity extends AppCompatActivity {
     }
   }
 }
+// #-end-code-snippet: marker-clusters-plugin-activity full-java

@@ -1,5 +1,5 @@
 package com.mapbox.mapboxandroiddemo.examples.styles;
-
+// #-code-snippet: geojson-clustering-activity full-java
 import android.graphics.Color;
 import android.os.Bundle;
 import android.support.v4.content.ContextCompat;
@@ -184,3 +184,4 @@ public class GeoJsonClusteringActivity extends AppCompatActivity {
 
   }
 }
+// #-end-code-snippet: geojson-clustering-activity full-java

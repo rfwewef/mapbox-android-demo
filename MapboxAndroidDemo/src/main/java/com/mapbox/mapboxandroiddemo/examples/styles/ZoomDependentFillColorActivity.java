@@ -1,5 +1,5 @@
 package com.mapbox.mapboxandroiddemo.examples.styles;
-
+// #-code-snippet: zoom-dependent-fill-color-activity full-java
 import android.graphics.Color;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
@@ -105,3 +105,4 @@ public class ZoomDependentFillColorActivity extends AppCompatActivity {
     mapView.onSaveInstanceState(outState);
   }
 }
+// #-end-code-snippet: zoom-dependent-fill-color-activity full-java

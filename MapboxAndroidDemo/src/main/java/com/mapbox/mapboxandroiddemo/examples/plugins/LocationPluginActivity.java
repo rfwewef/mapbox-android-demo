@@ -1,5 +1,5 @@
 package com.mapbox.mapboxandroiddemo.examples.plugins;
-
+// #-code-snippet: location-plugin-activity full-java
 import android.location.Location;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -180,3 +180,4 @@ public class LocationPluginActivity extends AppCompatActivity implements Locatio
     mapView.onLowMemory();
   }
 }
+// #-end-code-snippet: location-plugin-activity full-java

@@ -1,5 +1,5 @@
 package com.mapbox.mapboxandroiddemo.examples.javaservices;
-
+// #-code-snippet: static-image-activity full-java
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
@@ -78,3 +78,4 @@ public class StaticImageActivity extends AppCompatActivity {
     });
   }
 }
+// #-end-code-snippet: static-image-activity full-java
