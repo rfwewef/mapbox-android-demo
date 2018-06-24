@@ -98,6 +98,7 @@ import com.mapbox.mapboxandroiddemo.examples.styles.StyleFadeSwitchActivity;
 import com.mapbox.mapboxandroiddemo.examples.styles.VectorSourceActivity;
 import com.mapbox.mapboxandroiddemo.examples.styles.ZoomDependentFillColorActivity;
 import com.mapbox.mapboxandroiddemo.labs.AnimatedImageGifActivity;
+import com.mapbox.mapboxandroiddemo.labs.DottedLineDirectionsPickerActivity;
 import com.mapbox.mapboxandroiddemo.labs.IndoorMapActivity;
 import com.mapbox.mapboxandroiddemo.labs.InsetMapActivity;
 import com.mapbox.mapboxandroiddemo.labs.LocationPickerActivity;
@@ -677,6 +678,13 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
           R.string.activity_labs_snaking_directions_route_description,
           new Intent(MainActivity.this, SnakingDirectionsRouteActivity.class),
           R.string.activity_labs_snaking_directions_route_url, true, BuildConfig.MIN_SDK_VERSION
+        ));
+
+        exampleItemModels.add(new ExampleItemModel(
+          R.string.activity_dotted_line_directions_picker_title,
+          R.string.activity_dotted_line_directions_picker_description,
+          new Intent(MainActivity.this, DottedLineDirectionsPickerActivity.class),
+          R.string.activity_dotted_line_directions_picker_url, true, BuildConfig.MIN_SDK_VERSION
         ));
         currentCategory = R.id.nav_lab;
         break;
