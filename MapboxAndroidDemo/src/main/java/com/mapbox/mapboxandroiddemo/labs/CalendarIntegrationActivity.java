@@ -1,13 +1,10 @@
 package com.mapbox.mapboxandroiddemo.labs;
 
 import android.Manifest;
-import android.app.Activity;
-import android.content.ContentResolver;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
-import android.provider.CalendarContract;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -25,6 +22,12 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.mapbox.android.core.permissions.PermissionsListener;
+import com.mapbox.api.geocoding.v5.GeocodingCriteria;
+import com.mapbox.api.geocoding.v5.MapboxGeocoding;
+import com.mapbox.api.geocoding.v5.models.CarmenFeature;
+import com.mapbox.api.geocoding.v5.models.GeocodingResponse;
+import com.mapbox.core.exceptions.ServicesException;
+import com.mapbox.geojson.Point;
 import com.mapbox.mapboxandroiddemo.R;
 import com.mapbox.mapboxsdk.Mapbox;
 import com.mapbox.mapboxsdk.annotations.MarkerOptions;
@@ -38,9 +41,14 @@ import com.mapbox.mapboxsdk.maps.OnMapReadyCallback;
 import java.util.ArrayList;
 import java.util.List;
 
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import timber.log.Timber;
+
 /**
  * Use the Android system's Content Provider retrieve information about a user's upcoming calendar events.
- * Then use the event location name with Mapbox geocoding to show the event's location on the map.
+ * Then use the event location eventTitle with Mapbox geocoding to show the event's location on the map.
  */
 public class CalendarIntegrationActivity extends AppCompatActivity implements
   OnMapReadyCallback, PermissionsListener {
@@ -50,17 +58,8 @@ public class CalendarIntegrationActivity extends AppCompatActivity implements
   private MapView mapView;
   public MapboxMap mapboxMap;
   private RecyclerView recyclerView;
-  private LocationRecyclerViewAdapter locationAdapter;
-  private ArrayList<SingleRecyclerViewLocation> locationList;
-
-  public static final String[] EVENT_PROJECTION = new String[] {
-    "calendar_id",                           // 0
-    CalendarContract.Events.TITLE,                         // 1
-    CalendarContract.Events.EVENT_LOCATION,                // 2
-  };
-
-  // The indices for the projection array above.
-
+  private CalendarEventRecyclerViewAdapter locationAdapter;
+  private ArrayList<SingleCalendarEvent> listOfCalendarEvents;
   private static final int TITLE_INDEX = 1;
   private static final int EVENT_LOCATION_INDEX = 2;
 
@@ -87,16 +86,7 @@ public class CalendarIntegrationActivity extends AppCompatActivity implements
   public void onMapReady(MapboxMap mapboxMap) {
     CalendarIntegrationActivity.this.mapboxMap = mapboxMap;
 
-    setUpLists();
 
-    // Set up the recyclerView
-    locationAdapter = new LocationRecyclerViewAdapter(locationList, mapboxMap);
-    recyclerView.setLayoutManager(new LinearLayoutManager(getApplicationContext(),
-      LinearLayoutManager.HORIZONTAL, true));
-    recyclerView.setItemAnimator(new DefaultItemAnimator());
-    recyclerView.setAdapter(locationAdapter);
-    SnapHelper snapHelper = new LinearSnapHelper();
-    snapHelper.attachToRecyclerView(recyclerView);
     printDataFromEventTable();
   }
 
@@ -153,58 +143,38 @@ public class CalendarIntegrationActivity extends AppCompatActivity implements
 
   }
 
-  private ArrayList<SingleRecyclerViewLocation> setUpLists() {
-
-    // Set up markers on the map and the location list to feed to the recyclerview
-
-    locationList = new ArrayList<>();
-
-    LatLng[] coordinates = new LatLng[] {
-      new LatLng(-34.6054099, -58.363654800000006),
-      new LatLng(-34.6041508, -58.38555650000001), new LatLng(-34.6114412, -58.37808899999999),
-      new LatLng(-34.6097604, -58.382064000000014), new LatLng(-34.596636, -58.373077999999964),
-      new LatLng(-34.590548, -58.38256609999996),
-      new LatLng(-34.5982127, -58.38110440000003)
-    };
-
-    for (int x = 0; x < 7; x++) {
-      SingleRecyclerViewLocation singleLocation = new SingleRecyclerViewLocation();
-      singleLocation.setName(String.format(getString(R.string.rv_card_name), x));
-      singleLocation.setBedInfo(String.format(getString(R.string.rv_card_bed_info), x));
-      singleLocation.setLocationCoordinates(coordinates[x]);
-      locationList.add(singleLocation);
-
-      mapboxMap.addMarker(new MarkerOptions()
-        .position(coordinates[x])
-        .title(String.format(getString(R.string.rv_card_name), x))
-        .snippet(String.format(getString(R.string.rv_card_bed_info), x)));
-    }
-    return locationList;
-  }
-
   /**
    * POJO model class for a single location in the recyclerview
    */
-  class SingleRecyclerViewLocation {
+  class SingleCalendarEvent {
 
-    private String name;
-    private String bedInfo;
+    private String eventTitle;
+    private String eventLocation;
     private LatLng locationCoordinates;
 
-    public String getName() {
-      return name;
+    public SingleCalendarEvent() {
+
     }
 
-    public void setName(String name) {
-      this.name = name;
+    public SingleCalendarEvent(String eventTitle, String eventDescription, String eventLocation) {
+      this.eventTitle = eventTitle;
+      this.eventLocation = eventLocation;
     }
 
-    public String getBedInfo() {
-      return bedInfo;
+    public String getEventTitle() {
+      return eventTitle;
     }
 
-    public void setBedInfo(String bedInfo) {
-      this.bedInfo = bedInfo;
+    public void setEventTitle(String eventTitle) {
+      this.eventTitle = eventTitle;
+    }
+
+    public String getEventLocation() {
+      return eventLocation;
+    }
+
+    public void setEventLocation(String eventLocation) {
+      this.eventLocation = eventLocation;
     }
 
     public LatLng getLocationCoordinates() {
@@ -216,29 +186,28 @@ public class CalendarIntegrationActivity extends AppCompatActivity implements
     }
   }
 
-  static class LocationRecyclerViewAdapter extends
-    RecyclerView.Adapter<LocationRecyclerViewAdapter.MyViewHolder> {
+  static class CalendarEventRecyclerViewAdapter extends
+    RecyclerView.Adapter<CalendarEventRecyclerViewAdapter.MyViewHolder> {
 
-    private List<SingleRecyclerViewLocation> locationList;
+    private List<SingleCalendarEvent> locationList;
     private MapboxMap map;
 
-    public LocationRecyclerViewAdapter(List<SingleRecyclerViewLocation> locationList, MapboxMap mapBoxMap) {
+    public CalendarEventRecyclerViewAdapter(List<SingleCalendarEvent> locationList, MapboxMap mapBoxMap) {
       this.locationList = locationList;
       this.map = mapBoxMap;
     }
 
     @Override
-    public LocationRecyclerViewAdapter.MyViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+    public CalendarEventRecyclerViewAdapter.MyViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
       View itemView = LayoutInflater.from(parent.getContext())
-        .inflate(R.layout.rv_on_top_of_map_card, parent, false);
+        .inflate(R.layout.calendar_rv_card, parent, false);
       return new MyViewHolder(itemView);
     }
 
     @Override
-    public void onBindViewHolder(LocationRecyclerViewAdapter.MyViewHolder holder, int position) {
-      SingleRecyclerViewLocation singleRecyclerViewLocation = locationList.get(position);
-      holder.name.setText(singleRecyclerViewLocation.getName());
-      holder.numOfBeds.setText(singleRecyclerViewLocation.getBedInfo());
+    public void onBindViewHolder(CalendarEventRecyclerViewAdapter.MyViewHolder holder, int position) {
+      SingleCalendarEvent singleCalendarEvent = locationList.get(position);
+      holder.title.setText(singleCalendarEvent.getEventTitle());
       holder.setClickListener(new ItemClickListener() {
         @Override
         public void onClick(View view, int position) {
@@ -246,11 +215,6 @@ public class CalendarIntegrationActivity extends AppCompatActivity implements
           CameraPosition newCameraPosition = new CameraPosition.Builder()
             .target(selectedLocationLatLng)
             .build();
-
-          map.addMarker(new MarkerOptions()
-            .setPosition(selectedLocationLatLng)
-            .setTitle(locationList.get(position).getName()))
-            .setSnippet(locationList.get(position).getBedInfo());
 
           map.easeCamera(CameraUpdateFactory.newCameraPosition(newCameraPosition));
         }
@@ -264,16 +228,14 @@ public class CalendarIntegrationActivity extends AppCompatActivity implements
     }
 
     static class MyViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
-      TextView name;
-      TextView numOfBeds;
+      TextView title;
       CardView singleCard;
       ItemClickListener clickListener;
 
       MyViewHolder(View view) {
         super(view);
-        name = view.findViewById(R.id.location_title_tv);
-        numOfBeds = view.findViewById(R.id.location_num_of_beds_tv);
-        singleCard = view.findViewById(R.id.single_location_cardview);
+        title = view.findViewById(R.id.calendar_event_title);
+        singleCard = view.findViewById(R.id.single_calendar_event_cardview);
         singleCard.setOnClickListener(this);
       }
 
@@ -299,11 +261,8 @@ public class CalendarIntegrationActivity extends AppCompatActivity implements
       case MY_CAL_REQ: {
         if (grantResults.length > 0
           && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-
           Log.d(TAG, "onRequestPermissionsResult: calendar granted");
           printDataFromEventTable();
-
-
         } else {
           Toast.makeText(this, R.string.user_calendar_permission_explanation, Toast.LENGTH_LONG).show();
         }
@@ -311,7 +270,6 @@ public class CalendarIntegrationActivity extends AppCompatActivity implements
       }
     }
   }
-
 
   public void printDataFromEventTable() {
     if (ContextCompat.checkSelfPermission(this,
@@ -326,28 +284,110 @@ public class CalendarIntegrationActivity extends AppCompatActivity implements
         ActivityCompat.requestPermissions(this, new String[] {Manifest.permission.READ_CALENDAR}, MY_CAL_REQ);
       }
     } else {
-      // Calendar permission has already been granted
-      Log.d(TAG, "printDataFromEventTable: Permission has already been granted");
-
-
-      // Run query
-      Cursor cur = null;
-
-      String[] projection = new String[] { "calendar_id", "title", "description","dtstart", "dtend","organizer", "eventLocation"};
-      cur = this.getContentResolver()
+      String[] projection = new String[] {"calendar_id", "title", "eventLocation"};
+      Cursor cur = this.getContentResolver()
         .query(
-          Uri.parse("content://com.android.calendar/events"),projection, null, null, null);
-      
+          Uri.parse("content://com.android.calendar/events"), projection, null, null, null);
+
+      listOfCalendarEvents = new ArrayList<>();
+
+      int index = 0;
       while (cur.moveToNext()) {
-        String location = null;
-        String title = null;
+        if (index <= 20) {
+          String location = null;
+          String title = null;
 
-        location = cur.getString(EVENT_LOCATION_INDEX);
-        title = cur.getString(TITLE_INDEX);
+          title = cur.getString(TITLE_INDEX);
+          location = cur.getString(EVENT_LOCATION_INDEX);
 
-        Log.d(TAG, "printDataFromEventTable: location = " + location);
-        Log.d(TAG, "printDataFromEventTable: title = " + title);
+          if (!location.isEmpty()) {
+            Log.d(TAG, "printDataFromEventTable: title = " + title);
+            Log.d(TAG, "printDataFromEventTable: location = " + location);
+
+            SingleCalendarEvent singleCalendarEvent = new SingleCalendarEvent();
+            singleCalendarEvent.setEventTitle(title);
+            makeMapboxGeocodingRequest(location, singleCalendarEvent);
+          }
+          index++;
+        }
       }
+
+      initRecyclerView();
+    }
+  }
+
+  private void makeMapboxGeocodingRequest(String eventLocation, SingleCalendarEvent singleCalendarEvent) {
+    try {
+      // Build a Mapbox geocoding request
+      MapboxGeocoding client = MapboxGeocoding.builder()
+        .accessToken(getString(R.string.access_token))
+        .query(eventLocation)
+        .geocodingTypes(GeocodingCriteria.MODE_PLACES)
+        .mode(GeocodingCriteria.MODE_PLACES)
+        .build();
+      client.enqueueCall(new Callback<GeocodingResponse>() {
+        @Override
+        public void onResponse(Call<GeocodingResponse> call,
+                               Response<GeocodingResponse> response) {
+          List<CarmenFeature> results = response.body().features();
+          if (results.size() > 0) {
+
+            Log.d(TAG, "onResponse: results.size() > 0");
+
+            // Get the first Feature from the successful geocoding response
+            CarmenFeature feature = results.get(0);
+            if (feature != null) {
+
+              Log.d(TAG, "onResponse: feature = " + feature);
+              Log.d(TAG, "onResponse: feature center to string = " + feature.center().toString());
+
+              Point featurePoint = (Point) feature.geometry();
+
+              Log.d(TAG, "onResponse: feature point lat = " + featurePoint.latitude());
+              Log.d(TAG, "onResponse: feature point long = " + featurePoint.longitude());
+
+              LatLng featureLatLng = new LatLng(feature.center().latitude(), feature.center().longitude());
+
+              if (featureLatLng != null) {
+                singleCalendarEvent.setLocationCoordinates(featureLatLng);
+                listOfCalendarEvents.add(singleCalendarEvent);
+                addEventLocationMarker(featureLatLng, singleCalendarEvent.getEventTitle());
+              }
+            }
+
+          } else {
+            Toast.makeText(CalendarIntegrationActivity.this, R.string.no_results,
+              Toast.LENGTH_SHORT).show();
+          }
+        }
+
+        @Override
+        public void onFailure(Call<GeocodingResponse> call, Throwable throwable) {
+          Timber.e("Geocoding Failure: " + throwable.getMessage());
+        }
+      });
+    } catch (ServicesException servicesException) {
+      Timber.e("Error geocoding: " + servicesException.toString());
+      servicesException.printStackTrace();
+    }
+  }
+
+  private void addEventLocationMarker(LatLng coordinates, String eventTitle) {
+    mapboxMap.addMarker(new MarkerOptions()
+      .position(coordinates)
+      .title(eventTitle));
+  }
+
+  private void initRecyclerView() {
+    // Set up the recyclerView
+    if (listOfCalendarEvents.size() > 0) {
+      locationAdapter = new CalendarEventRecyclerViewAdapter(listOfCalendarEvents, mapboxMap);
+      recyclerView.setLayoutManager(new LinearLayoutManager(getApplicationContext(),
+        LinearLayoutManager.HORIZONTAL, true));
+      recyclerView.setItemAnimator(new DefaultItemAnimator());
+      recyclerView.setAdapter(locationAdapter);
+      SnapHelper snapHelper = new LinearSnapHelper();
+      snapHelper.attachToRecyclerView(recyclerView);
     }
   }
 }
