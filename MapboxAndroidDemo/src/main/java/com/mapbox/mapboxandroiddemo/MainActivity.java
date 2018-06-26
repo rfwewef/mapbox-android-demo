@@ -97,6 +97,7 @@ import com.mapbox.mapboxandroiddemo.examples.styles.StyleFadeSwitchActivity;
 import com.mapbox.mapboxandroiddemo.examples.styles.VectorSourceActivity;
 import com.mapbox.mapboxandroiddemo.examples.styles.ZoomDependentFillColorActivity;
 import com.mapbox.mapboxandroiddemo.labs.AnimatedImageGifActivity;
+import com.mapbox.mapboxandroiddemo.labs.CalendarIntegrationActivity;
 import com.mapbox.mapboxandroiddemo.labs.IndoorMapActivity;
 import com.mapbox.mapboxandroiddemo.labs.InsetMapActivity;
 import com.mapbox.mapboxandroiddemo.labs.LocationPickerActivity;
@@ -662,6 +663,12 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
           R.string.activity_labs_gif_on_map_title,
           R.string.activity_labs_gif_on_map_description,
           new Intent(MainActivity.this, AnimatedImageGifActivity.class),
+          R.string.activity_labs_gif_on_map_url, false, BuildConfig.MIN_SDK_VERSION
+        ));
+        exampleItemModels.add(new ExampleItemModel(
+          R.string.activity_lab_calendar_integration_title,
+          R.string.activity_lab_calendar_integration_description,
+          new Intent(MainActivity.this, CalendarIntegrationActivity.class),
           R.string.activity_labs_gif_on_map_url, false, BuildConfig.MIN_SDK_VERSION
         ));
         currentCategory = R.id.nav_lab;
