@@ -247,4 +247,12 @@
     <string name="layer_not_found">The %1$s layer isn\'t part of this map style, so data might not appear</string>
     <string name="move_the_map_and_research">Move the map and search again</string>
 
+    <!-- Static image -->
+    <string name="choose_style">Choose style</string>
+    <string name="dark_style">Dark</string>
+    <string name="light_style">Light</string>
+    <string name="streets_style">Streets</string>
+    <string name="create_image">Create static image</string>
+    <string name="select_a_style">Select a style button first!</string>
+
 </resources>
